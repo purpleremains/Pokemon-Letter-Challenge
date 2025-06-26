@@ -148,6 +148,10 @@
             background: linear-gradient(45deg, #4ECDC4, #6FDCD4);
             color: white;
         }
+        .btn-mic {
+            background: linear-gradient(45deg, #FFD700, #FFA500); /* Gold/Orange for mic */
+            color: white;
+        }
         /* Button hover effect */
         .btn:hover {
             transform: translateY(-2px);
@@ -320,6 +324,7 @@
                 <br><br>
                 <button class="btn btn-primary" id="submitBtn" onclick="submitGuess()">Submit</button>
                 <button class="btn btn-secondary" id="skipBtn" onclick="skipRound()">Skip</button>
+                <button class="btn btn-mic" id="micBtn" onclick="toggleSpeechRecognition()">Speak Pokémon</button>
             </div>
 
             <div class="message" id="message"></div>
@@ -421,8 +426,8 @@
                 'Duraludon', 'Duraludon-Gigantamax', 'Durant', 'Dusclops', 'Dusknoir', 'Duskull', 'Dustox', 'Dwebble',
                 'Darkrai', 'Decidueye', 'Dedenne', 'Deerling', 'Deino', 'Delcatty', 'Delibird', 'Delphox', 'Deoxys',
                 'Dewgong', 'Dewott', 'Dhelmise', 'Dialga', 'Diancie', 'Diggersby', 'Diglett', 'Ditto', 'Dodrio', 'Doduo',
-                'Donphan', 'Dracovish', 'Dracozolt', 'Dragalge', 'Dragonair', 'Dragonite', 'Drakloak', 'Drampa', 'Drapion',
-                'Dratini', 'Drednaw', 'Dreepy', 'Drifblim', 'Drifloon', 'Drilbur', 'Drizzile', 'Drowzee', 'Druddigon',
+                'Dolliv', 'Donphan', 'Dracovish', 'Dracozolt', 'Dragalge', 'Dragonair', 'Dragonite', 'Drakloak', 'Drampa',
+                'Drapion', 'Dratini', 'Drednaw', 'Dreepy', 'Drifblim', 'Drifloon', 'Drilbur', 'Drizzile', 'Drowzee', 'Druddigon',
                 'Dubwool', 'Ducklett', 'Dudunsparce', 'Dugtrio', 'Dunsparce', 'Duosion', 'Duraludon', 'Durant', 'Dusclops',
                 'Dusknoir', 'Duskull', 'Dustox', 'Dwebble', 'Dachsbun', 'Dolliv', 'Drifblim', 'Drakloak'
             ],
@@ -621,6 +626,74 @@
             guessedPokemon: new Set() // Stores unique Pokémon guessed in the current game
         };
 
+        // Speech Recognition setup
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+        let isListening = false;
+
+        // Initialize speech recognition if supported
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false; // Listen for a single phrase
+            recognition.interimResults = false; // Only return final results
+            recognition.lang = 'en-US'; // Set language
+
+            recognition.onstart = () => {
+                isListening = true;
+                document.getElementById('micBtn').textContent = 'Listening...';
+                document.getElementById('micBtn').classList.add('active'); // Add a class for styling active mic
+                showMessage('Say a Pokémon name!', 'success');
+                disableGameInput(true); // Temporarily disable text input while listening
+                document.getElementById('pokemonInput').disabled = true; // Make sure input field is disabled
+                document.getElementById('submitBtn').disabled = true;
+                document.getElementById('skipBtn').disabled = true;
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('pokemonInput').value = transcript;
+                showMessage(`Heard: "${transcript}"`, 'message');
+                // Automatically submit the guess after speech is recognized
+                submitGuess();
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                document.getElementById('micBtn').textContent = 'Speak Pokémon';
+                document.getElementById('micBtn').classList.remove('active');
+                if (currentGame.isActive) { // Re-enable text input only if game is still active
+                    disableGameInput(false);
+                }
+            };
+
+            recognition.onerror = (event) => {
+                isListening = false;
+                document.getElementById('micBtn').textContent = 'Speak Pokémon';
+                document.getElementById('micBtn').classList.remove('active');
+                if (currentGame.isActive) {
+                    disableGameInput(false);
+                }
+                console.error('Speech recognition error:', event.error); // Added label to console error
+                let errorMessage = 'Speech recognition failed.';
+                if (event.error === 'not-allowed') {
+                    errorMessage = 'Microphone access denied. Please allow microphone in browser settings. If running locally, ensure you are using HTTPS.';
+                } else if (event.error === 'no-speech') {
+                    errorMessage = 'No speech detected. Please try again.';
+                } else if (event.error === 'audio-capture') {
+                    errorMessage = 'Audio capture failed. Check your microphone.';
+                }
+                showMessage(`Error: ${errorMessage}`, 'error');
+            };
+        } else {
+            document.addEventListener('DOMContentLoaded', () => {
+                document.getElementById('micBtn').disabled = true;
+                document.getElementById('micBtn').textContent = 'Speech Not Supported';
+                document.getElementById('micBtn').style.opacity = '0.7';
+                document.getElementById('micBtn').style.cursor = 'not-allowed';
+            });
+        }
+
+
         /**
          * Helper function to show a specific screen and hide all others.
          * @param {string} screenId - The ID of the screen to show (e.g., 'mainMenu', 'game').
@@ -632,26 +705,53 @@
             });
             document.getElementById(screenId).classList.remove('hidden');
 
+            // Stop speech recognition when changing screens
+            if (isListening && recognition) {
+                recognition.stop();
+            }
+
             // Handle specific screen setups
             if (screenId === 'pokemonListScreen') {
                 populateAllPokemonList();
             } else if (screenId === 'game') {
-                disableGameInput(false); // Enable input for the game screen
+                // Input is enabled by startNewRound, or if game active after mic stop
+                // Ensure mic button is enabled if supported
+                if (SpeechRecognition) {
+                    document.getElementById('micBtn').disabled = false;
+                }
             } else {
                 disableGameInput(true); // Ensure inputs are disabled for non-game screens
-                // It's crucial not to clear existing messages for game over screen, etc.
-                // Only clear input and message when starting a new round in game screen.
+                if (SpeechRecognition) { // Disable mic button on non-game screens
+                    document.getElementById('micBtn').disabled = true;
+                }
             }
         }
 
         /**
          * Helper function to enable or disable game input elements (text field and buttons).
+         * This specifically controls the *manual* input and submit/skip buttons.
+         * Mic button is handled separately.
          * @param {boolean} disable - True to disable, false to enable.
          */
         function disableGameInput(disable) {
             document.getElementById('pokemonInput').disabled = disable;
             document.getElementById('submitBtn').disabled = disable;
             document.getElementById('skipBtn').disabled = disable;
+        }
+
+        /**
+         * Toggles speech recognition on and off.
+         */
+        function toggleSpeechRecognition() {
+            if (!recognition) {
+                showMessage('Speech recognition not supported in this browser.', 'error');
+                return;
+            }
+            if (isListening) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
         }
 
         /**
@@ -712,6 +812,13 @@
 
             updateDisplay(); // Update current score and round on screen
             startTimer(); // Start the countdown timer for this new round
+
+            // Ensure manual input is enabled when a new round starts
+            disableGameInput(false);
+            // Ensure microphone button is enabled if supported
+            if (SpeechRecognition) {
+                document.getElementById('micBtn').disabled = false;
+            }
         }
 
         /**
@@ -768,6 +875,11 @@
             const input = document.getElementById('pokemonInput').value.trim();
             // Guard clause: do nothing if input is empty or game is not active
             if (!input || !currentGame.isActive) return;
+
+            // Stop any ongoing speech recognition before processing guess
+            if (isListening && recognition) {
+                recognition.stop();
+            }
 
             checkAnswer(input); // Process the user's guess
         }
@@ -847,6 +959,11 @@
                 clearInterval(currentGame.timer);
                 currentGame.timer = null;
             }
+            // Stop any ongoing speech recognition
+            if (isListening && recognition) {
+                recognition.stop();
+            }
+
             disableGameInput(true); // Disable input and buttons on skip, as game will end
             // Show some examples for the current letter (first 3)
             const examples = pokemonByLetter[currentGame.letter].slice(0, 3).join(', ');
@@ -866,6 +983,11 @@
                 clearInterval(currentGame.timer);
                 currentGame.timer = null;
             }
+            // Stop any ongoing speech recognition
+            if (isListening && recognition) {
+                recognition.stop();
+            }
+
             disableGameInput(true); // Disable input and buttons on time up, as game will end
             // Show some examples for the current letter (first 3)
             const examples = pokemonByLetter[currentGame.letter].slice(0, 3).join(', ');
@@ -903,7 +1025,10 @@
         function gameOver() {
             currentGame.isActive = false; // Deactivate game state
             clearInterval(currentGame.timer); // Ensure timer is stopped
-
+            // Stop any ongoing speech recognition
+            if (isListening && recognition) {
+                recognition.stop();
+            }
             showScreen('gameOver'); // Show the game over screen
 
             // Update final score and rounds played on the game over screen

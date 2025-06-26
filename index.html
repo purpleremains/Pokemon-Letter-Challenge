@@ -41,6 +41,7 @@
             /* Ensures content adjusts on smaller screens */
             padding: 20px; /* Adjust padding for smaller screens */
             box-sizing: border-box; /* Include padding in element's total width and height */
+            position: relative; /* Needed for absolute positioning of children */
         }
 
         /* Responsive adjustments for game container on very small screens */
@@ -278,33 +279,26 @@
             margin-top: 0;
         }
 
-        /* Countdown Overlay Styling */
-        #countdownOverlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 10rem;
-            font-weight: bold;
-            color: #FFD700;
-            text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.5);
-            z-index: 1000; /* Ensure it's on top */
-            opacity: 0; /* Start hidden and fade in/out */
-            transition: opacity 0.3s ease-in-out;
-            pointer-events: none; /* Allows clicks to pass through when hidden */
+        /* Pokémon Image Display */
+        #pokemonImageDisplay {
+            width: 250px; /* Increased width for the image */
+            height: 250px; /* Increased height for the image */
+            position: absolute; /* Position absolutely relative to .game-container */
+            top: 50%; /* Center vertically */
+            left: 50%; /* Center horizontally */
+            transform: translate(-50%, -50%); /* Adjust for element's own size */
+            z-index: 10; /* Ensure it's above other elements like the letter */
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            object-fit: contain; /* Ensures the entire image is visible without stretching */
+            background-color: #FFFFFF; /* Changed to solid white to fully cover the letter */
+            padding: 5px; /* Little padding around the image within its box */
+            transition: opacity 0.3s ease-in-out; /* Smooth fade in/out */
+            opacity: 1; /* Default to visible when not hidden class */
         }
-        #countdownOverlay.active {
-            opacity: 1;
-            pointer-events: auto; /* Enable pointer events when active */
-        }
-        /* Responsive font size for countdown */
-        #countdownOverlay span {
-            font-size: clamp(5rem, 25vw, 10rem);
+        #pokemonImageDisplay.hidden {
+            opacity: 0;
+            pointer-events: none; /* Make it unclickable when hidden */
         }
     </style>
 </head>
@@ -356,6 +350,9 @@
                 <button class="btn btn-mic" id="micBtn" onclick="toggleSpeechRecognition()">Speak Pokémon</button>
             </div>
 
+            <!-- The Pokémon image is now positioned absolutely within the game container -->
+            <img id="pokemonImageDisplay" class="hidden" src="" alt="Pokémon Image">
+
             <div class="message" id="message"></div>
 
             <div class="score">
@@ -378,11 +375,6 @@
             <button class="btn btn-primary" onclick="restartGame()">Play Again</button>
             <button class="btn btn-secondary" onclick="showMainMenu()">Main Menu</button>
         </div>
-    </div>
-
-    <!-- Countdown Overlay -->
-    <div id="countdownOverlay" class="hidden">
-        <span id="countdownText"></span>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
@@ -444,9 +436,9 @@
                 'Cinderace-Gigantamax', 'Coalossal-Gigantamax', 'Copperajah-Gigantamax', 'Corviknight-Gigantamax',
                 'Chandelure', 'Chatot', 'Chesnaught', 'Chespin', 'Chikorita', 'Chimecho', 'Chinchou', 'Chingling', 'Cinccino',
                 'Clamperl', 'Clauncher', 'Clawitzer', 'Claydol', 'Clefable', 'Clefairy', 'Cleffa', 'Cloyster', 'Clobbopus',
-                'Cobalion', 'Cofagrigus', 'Combee', 'Combusken', 'Corphish', 'Corsola', 'Cradily', 'Cranidos', 'Crawdaunt',
-                'Cresselia', 'Croagunk', 'Crobat', 'Croconaw', 'Crustle', 'Cryogonal', 'Cubchoo', 'Cubone', 'Cufant',
-                'Cursola', 'Ceruledge', 'Charcadet', 'Capsakid', 'Chien-Pao', 'Cyclizar', 'Carkol', 'Castform-Rainy',
+                'Cobalion', 'Cofagrigus', 'Combee', 'Combusken', 'Copperajah', 'Corphish', 'Corsola', 'Cradily', 'Cranidos',
+                'Crawdaunt', 'Cresselia', 'Croagunk', 'Crobat', 'Croconaw', 'Crustle', 'Cryogonal', 'Cubchoo', 'Cubone',
+                'Cufant', 'Cursola', 'Ceruledge', 'Charcadet', 'Capsakid', 'Chien-Pao', 'Cyclizar', 'Carkol', 'Castform-Rainy',
                 'Castform-Snowy', 'Castform-Sunny', 'Celesteela', 'Chimecho', 'Clefairy', 'Calyrex-Ice-Rider', 'Calyrex-Shadow-Rider',
                 'Charmeleon', 'Chingling'
             ],
@@ -461,8 +453,8 @@
                 'Duraludon', 'Duraludon-Gigantamax', 'Durant', 'Dusclops', 'Dusknoir', 'Duskull', 'Dustox', 'Dwebble',
                 'Darkrai', 'Decidueye', 'Dedenne', 'Deerling', 'Deino', 'Delcatty', 'Delibird', 'Delphox', 'Deoxys',
                 'Dewgong', 'Dewott', 'Dhelmise', 'Dialga', 'Diancie', 'Diggersby', 'Diglett', 'Ditto', 'Dodrio', 'Doduo',
-                'Donphan', 'Dracovish', 'Dracozolt', 'Dragalge', 'Dragonair', 'Dragonite', 'Drakloak', 'Drampa', 'Drapion',
-                'Dratini', 'Drednaw', 'Dreepy', 'Drifblim', 'Drifloon', 'Drilbur', 'Drizzile', 'Drowzee', 'Druddigon',
+                'Dolliv', 'Donphan', 'Dracovish', 'Dracozolt', 'Dragalge', 'Dragonair', 'Dragonite', 'Drakloak', 'Drampa',
+                'Drapion', 'Dratini', 'Drednaw', 'Dreepy', 'Drifblim', 'Drifloon', 'Drilbur', 'Drizzile', 'Drowzee', 'Druddigon',
                 'Dubwool', 'Ducklett', 'Dudunsparce', 'Dugtrio', 'Dunsparce', 'Duosion', 'Duraludon', 'Durant', 'Dusclops',
                 'Dusknoir', 'Duskull', 'Dustox', 'Dwebble', 'Dachsbun', 'Dolliv', 'Drifblim', 'Drakloak'
             ],
@@ -747,8 +739,9 @@
          * Plays a sound effect based on type.
          * @param {string} type - 'correct', 'wrong', 'click', or 'warning'.
          * @param {string} [note] - Optional, for 'warning' sounds (e.g., "C4", "C3").
+         * @param {number} [timeOffset=0] - Optional, time in seconds to schedule sound relative to Tone.context.currentTime.
          */
-        function playSound(type, note = "C4") {
+        function playSound(type, note = "C4", timeOffset = 0) {
             // Always initialize audio context on user interaction
             initializeAudio(); 
             
@@ -891,7 +884,6 @@
          * Toggles speech recognition on and off.
          */
         function toggleSpeechRecognition() {
-            // playSound('click'); // Click sound will be handled by delegated listener
             if (!recognition) {
                 showMessage('Speech recognition not supported in this browser.', 'error');
                 return;
@@ -917,7 +909,6 @@
          * Initializes game state and starts a new round.
          */
         function startGame() {
-            // playSound('click'); // Click sound will be handled by delegated listener
             // Reset game state for a new game
             currentGame = {
                 letter: '',
@@ -931,7 +922,58 @@
 
             updateDisplay(); // Update score and round display
             showScreen('game'); // Show the game screen
-            startNewRound(); // Begin the first round
+            startNewRound(); // Begin the first round immediately
+        }
+
+        /**
+         * Formats a Pokémon name to be compatible with PokeAPI.
+         * This handles common regional forms and special characters.
+         * @param {string} name - The original Pokémon name.
+         * @returns {string} The formatted name for PokeAPI.
+         */
+        function formatPokemonNameForApi(name) {
+            let formattedName = name.toLowerCase();
+
+            // Handle common regional forms
+            if (formattedName.includes('alolan ')) {
+                formattedName = formattedName.replace('alolan ', '') + '-alola';
+            } else if (formattedName.includes('galarian ')) {
+                formattedName = formattedName.replace('galarian ', '') + '-galar';
+            } else if (formattedName.includes('hisuian ')) {
+                formattedName = formattedName.replace('hisuian ', '') + '-hisui';
+            } else if (formattedName.includes('paldean ')) {
+                // "Paldean Tauros-Aqua" -> "tauros-paldea-aqua"
+                // This is a simplified regex, may need specific hardcoding for all edge cases
+                formattedName = formattedName.replace('paldean ', '');
+                const parts = formattedName.split('-');
+                if (parts.length > 1) {
+                    formattedName = parts[0] + '-paldea-' + parts.slice(1).join('-');
+                } else {
+                    formattedName += '-paldea';
+                }
+            }
+
+            // Replace spaces and specific punctuation with hyphens
+            formattedName = formattedName.replace(/ /g, '-');
+            formattedName = formattedName.replace(/[\u2640\u2642]/g, ''); // Remove female/male symbols ♀♂
+            formattedName = formattedName.replace(/%/g, '-percent'); // Handle percentages
+            formattedName = formattedName.replace(/[\.'']/g, ''); // Remove periods and apostrophes
+
+            // Specific overrides for known tricky names (lowercase and hyphenated)
+            if (formattedName === 'mr-mime') formattedName = 'mr-mime';
+            if (formattedName === 'farfetchd') formattedName = 'farfetchd'; // already okay, just to be explicit
+            if (formattedName === 'ho-oh') formattedName = 'ho-oh'; // already okay
+            if (formattedName === 'indeedee-female') formattedName = 'indeedee-f';
+            if (formattedName === 'indeedee') formattedName = 'indeedee'; // Default indeedee is male
+            if (formattedName.endsWith('-gigantamax')) {
+                 formattedName = formattedName.replace('-gigantamax', '-gmax');
+            }
+            if (formattedName.endsWith('-mega')) {
+                // Keep -mega as is typically correct for PokeAPI
+            }
+
+
+            return formattedName;
         }
 
         /**
@@ -959,6 +1001,8 @@
             document.getElementById('pokemonInput').focus(); // Set focus to the input for quick typing
             document.getElementById('message').textContent = ''; // Clear any previous messages
             document.getElementById('message').className = 'message'; // Reset message class for styling
+            document.getElementById('pokemonImageDisplay').classList.add('hidden'); // Hide Pokémon image
+            document.getElementById('pokemonImageDisplay').src = ''; // Clear image source
 
             updateDisplay(); // Update current score and round on screen
             startTimer(); // Start the countdown timer for this new round
@@ -1032,7 +1076,6 @@
          * Prevents submission if input is empty or game is not active.
          */
         function submitGuess() {
-            // playSound('click'); // Click sound will be handled by delegated listener
             const input = document.getElementById('pokemonInput').value.trim();
             // Guard clause: do nothing if input is empty or game is not active
             if (!input || !currentGame.isActive) return;
@@ -1054,12 +1097,15 @@
             const normalizedGuess = guess.toLowerCase().trim(); // Normalize guess for case-insensitive comparison
             // Get a lowercase array of valid Pokémon for the current letter
             const validPokemonForLetter = pokemonByLetter[currentGame.letter].map(p => p.toLowerCase());
+            const pokemonImageEl = document.getElementById('pokemonImageDisplay');
 
             // --- Check for repeated Pokémon (that were previously correct) ---
             if (currentGame.guessedPokemon.has(normalizedGuess)) {
                 playSound('wrong'); // Play wrong sound for duplicates
                 showMessage(`You already said "${guess}"! Try a new one.`, 'error');
                 document.getElementById('pokemonInput').value = ''; // Clear input
+                pokemonImageEl.classList.add('hidden'); // Hide image
+                pokemonImageEl.src = ''; // Clear image source
 
                 // Conditional timer reset for duplicates
                 if (currentGame.timeLeft < 5) {
@@ -1095,9 +1141,48 @@
                 }
                 currentGame.correct++; // Increment correct count
                 currentGame.guessedPokemon.add(normalizedGuess); // Add to guessed set
+
+                // Display Pokémon image
+                const originalPokemonName = pokemonByLetter[currentGame.letter].find(p => p.toLowerCase() === normalizedGuess);
+                if (originalPokemonName) {
+                    const apiPokemonName = formatPokemonNameForApi(originalPokemonName);
+                    
+                    // Show a temporary loading image
+                    pokemonImageEl.src = `https://placehold.co/250x250/CCCCCC/000000?text=Loading...`;
+                    pokemonImageEl.alt = "Loading image...";
+                    pokemonImageEl.classList.remove('hidden');
+
+                    fetch(`https://pokeapi.co/api/v2/pokemon/${apiPokemonName}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`Pokémon not found on PokeAPI: ${originalPokemonName}`);
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            const imageUrl = data.sprites.other['official-artwork']?.front_default || data.sprites.front_default;
+                            if (imageUrl) {
+                                pokemonImageEl.src = imageUrl;
+                                pokemonImageEl.alt = originalPokemonName;
+                            } else {
+                                // Fallback to placehold.co if no sprite found
+                                pokemonImageEl.src = `https://placehold.co/250x250/FFD700/000000?text=No+Image+for+${originalPokemonName.replace(/\s/g, '+')}`;
+                                pokemonImageEl.alt = "No image available";
+                            }
+                        })
+                        .catch(error => {
+                            console.error("Error fetching Pokémon image:", error);
+                            // Fallback to placehold.co on fetch error
+                            pokemonImageEl.src = `https://placehold.co/250x250/FF6B6B/FFFFFF?text=Error+Loading+${originalPokemonName.replace(/\s/g, '+')}`;
+                            pokemonImageEl.alt = "Image load error";
+                        });
+                }
+                
                 showMessage(`Correct! ${guess} is a great choice!`, 'success');
                 // Wait a bit before starting the next round
                 setTimeout(() => {
+                    pokemonImageEl.classList.add('hidden'); // Hide Pokémon image before next round
+                    pokemonImageEl.src = ''; // Clear image source
                     nextRound();
                 }, 1500); // Short delay for user to read success message
             } else {
@@ -1105,6 +1190,9 @@
                 playSound('wrong'); // Play wrong sound
                 showMessage(`Sorry! "${guess}" doesn't start with ${currentGame.letter} or isn't a valid Pokémon.`, 'error');
                 document.getElementById('pokemonInput').value = ''; // Clear input
+                pokemonImageEl.classList.add('hidden'); // Hide image
+                pokemonImageEl.src = ''; // Clear image source
+
                 // The timer continues running for incorrect guesses. No game over here.
                 setTimeout(() => {
                     document.getElementById('pokemonInput').focus(); // Refocus input
@@ -1141,6 +1229,9 @@
             }
 
             disableGameInput(true); // Disable input and buttons on skip, as game will end
+            document.getElementById('pokemonImageDisplay').classList.add('hidden'); // Hide image on skip
+            document.getElementById('pokemonImageDisplay').src = ''; // Clear image source
+
             // Show some random examples for the current letter (3 examples)
             const examples = getRandomElements(pokemonByLetter[currentGame.letter], 3).join(', ');
             showMessage(`Skipped! Examples for ${currentGame.letter}: ${examples}`, 'error');
@@ -1166,6 +1257,9 @@
             }
 
             disableGameInput(true); // Disable input and buttons on time up, as game will end
+            document.getElementById('pokemonImageDisplay').classList.add('hidden'); // Hide image on time up
+            document.getElementById('pokemonImageDisplay').src = ''; // Clear image source
+
             // Show some random examples for the current letter (3 examples)
             const examples = getRandomElements(pokemonByLetter[currentGame.letter], 3).join(', ');
             showMessage(`Time's up! Examples for ${currentGame.letter}: ${examples}`, 'error');
@@ -1192,7 +1286,7 @@
          */
         function nextRound() {
             currentGame.round++;
-            startNewRound();
+            startNewRound(); // Start next round directly
         }
 
         /**
@@ -1206,6 +1300,8 @@
             if (isListening && recognition) {
                 recognition.stop();
             }
+            document.getElementById('pokemonImageDisplay').classList.add('hidden'); // Hide image on game over
+            document.getElementById('pokemonImageDisplay').src = ''; // Clear image source
             showScreen('gameOver'); // Show the game over screen
 
             // Update final score and rounds played on the game over screen
@@ -1217,8 +1313,6 @@
          * Restarts the game from the beginning by calling startGame().
          */
         function restartGame() {
-            // playSound('click'); // Click sound will be handled by delegated listener
-            // Goes to instructions first for a fresh start, matching "Play Now" flow
             showInstructions();
         }
 
@@ -1226,7 +1320,6 @@
          * Shows the main menu screen.
          */
         function showMainMenu() {
-            // playSound('click'); // Click sound will be handled by delegated listener
             showScreen('mainMenu');
         }
 
@@ -1234,7 +1327,6 @@
          * Shows the instructions screen.
          */
         function showInstructions() {
-            // playSound('click'); // Click sound will be handled by delegated listener
             showScreen('instructionsScreen');
         }
 
@@ -1265,7 +1357,6 @@
          * Shows the all Pokémon list screen.
          */
         function showAllPokemon() {
-            // playSound('click'); // Click sound will be handled by delegated listener
             showScreen('pokemonListScreen');
         }
 

@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokémon Letter Challenge</title>
+    <style>
+        /* General reset and body styling */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh; /* Ensures full viewport height */
+            /* Using 100dvh for better mobile dynamic viewport height handling if supported */
+            min-height: 100dvh; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            /* Prevents horizontal scrolling, crucial for mobile */
+            overflow-x: hidden; 
+        }
+        /* Main game container styling */
+        .game-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+            max-width: 500px;
+            width: 90%; /* Responsive width */
+            display: flex; /* Use flexbox for screen management */
+            flex-direction: column;
+            align-items: center;
+            /* Ensures content adjusts on smaller screens */
+            padding: 20px; /* Adjust padding for smaller screens */
+            box-sizing: border-box; /* Include padding in element's total width and height */
+        }
+
+        /* Responsive adjustments for game container on very small screens */
+        @media (max-width: 400px) {
+            .game-container {
+                padding: 15px; /* Further reduce padding on very small screens */
+            }
+        }
+
+        /* Title styling */
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            /* Responsive font size */
+            font-size: clamp(1.8rem, 5vw, 2.5rem);
+        }
+        /* Screen common styling */
+        .screen {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        /* Current letter display styling */
+        .letter-display {
+            font-size: 8rem;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.5);
+            margin: 30px 0;
+            animation: pulse 2s infinite; /* Animation for the letter */
+            /* Responsive font size */
+            font-size: clamp(5rem, 20vw, 8rem);
+        }
+        /* Keyframe animation for pulse effect */
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        /* Timer display styling */
+        .timer {
+            font-size: 2rem;
+            margin: 20px 0;
+            color: #FF6B6B;
+            font-weight: bold;
+            /* Responsive font size */
+            font-size: clamp(1.5rem, 5vw, 2rem);
+        }
+        /* Warning animation for timer when low */
+        .timer.warning {
+            animation: flash 0.5s infinite;
+        }
+        /* Keyframe animation for flash effect */
+        @keyframes flash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        /* Input and button container */
+        .input-container {
+            margin: 30px 0;
+            width: 100%;
+            display: flex;
+            flex-direction: column; /* Stack input and buttons vertically on small screens */
+            align-items: center;
+        }
+        /* Text input field styling */
+        input[type="text"] {
+            font-size: 1.2rem;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            width: 100%;
+            max-width: 300px;
+            text-align: center;
+            outline: none;
+            transition: all 0.3s ease;
+            margin-bottom: 15px; /* Add margin below input for stacking */
+        }
+        input[type="text"]:focus {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+        /* Button general styling */
+        .btn {
+            font-size: 1.1rem;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            text-transform: uppercase;
+            min-width: 150px; /* Ensure buttons are wide enough for touch */
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #FF6B6B, #FF8E8E);
+            color: white;
+        }
+        .btn-secondary {
+            background: linear-gradient(45deg, #4ECDC4, #6FDCD4);
+            color: white;
+        }
+        /* Button hover effect */
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        /* Disabled button styling */
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        /* Score display styling */
+        .score {
+            font-size: 1.5rem;
+            margin: 20px 0;
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            /* Responsive font size */
+            font-size: clamp(1.2rem, 4vw, 1.5rem);
+        }
+        /* Individual score item styling */
+        .score-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 10px;
+            flex-grow: 1;
+            margin: 0 5px;
+        }
+        /* Message display styling */
+        .message {
+            font-size: 1.3rem;
+            margin: 20px 0;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            width: 100%;
+            /* Responsive font size */
+            font-size: clamp(1rem, 3.5vw, 1.3rem);
+        }
+        /* Success message styling */
+        .success {
+            color: #4ECDC4;
+            font-weight: bold;
+        }
+        /* Error message styling */
+        .error {
+            color: #FF6B6B;
+            font-weight: bold;
+        }
+        /* Game over screen styling */
+        .game-over {
+            background: rgba(255, 107, 107, 0.2);
+            border: 2px solid #FF6B6B;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            width: 100%;
+        }
+        /* Utility class to hide elements */
+        .hidden {
+            display: none;
+        }
+        /* Instructions box styling */
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            font-size: 1rem;
+            line-height: 1.5;
+            width: 100%;
+            /* Responsive font size */
+            font-size: clamp(0.9rem, 3vw, 1rem);
+        }
+        /* Credits styling */
+        .credits {
+            margin-top: 30px;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            /* Responsive font size */
+            font-size: clamp(0.8rem, 2.5vw, 0.9rem);
+        }
+
+        /* Pokémon List Specific Styling */
+        .pokemon-list-container {
+            max-height: 300px; /* Make it scrollable */
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            width: 100%;
+            text-align: left;
+        }
+        .pokemon-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .pokemon-list li {
+            padding: 5px 0;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+            font-size: 0.95rem;
+            color: #E0E0E0;
+            /* Responsive font size */
+            font-size: clamp(0.85rem, 2.8vw, 0.95rem);
+        }
+        .pokemon-list li:last-child {
+            border-bottom: none;
+        }
+        .pokemon-list h3 {
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-size: 1.2rem;
+            color: #FFD700;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+            /* Responsive font size */
+            font-size: clamp(1.1rem, 4vw, 1.2rem);
+        }
+        .pokemon-list h3:first-child {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🔥 Pokémon Letter Challenge</h1>
+
+        <!-- Main Menu Screen -->
+        <div id="mainMenu" class="screen">
+            <button class="btn btn-primary" onclick="showInstructions()">Play Now</button>
+            <button class="btn btn-secondary" onclick="showAllPokemon()">View All Pokémon</button>
+            <div class="credits">Made with AI and PurpleRemains</div>
+        </div>
+
+        <!-- Instructions Screen -->
+        <div id="instructionsScreen" class="screen hidden">
+            <div class="instructions">
+                <p><strong>How to Play:</strong></p>
+                <p>• You'll get a random letter</p>
+                <p>• Name a Pokémon starting with that letter</p>
+                <p>• You have 10 seconds per round</p>
+                <p>• Get as many correct as you can!</p>
+            </div>
+            <button class="btn btn-primary" onclick="startGame()">Start Game</button>
+            <button class="btn btn-secondary" onclick="showMainMenu()">Back to Main Menu</button>
+        </div>
+
+        <!-- All Pokémon List Screen -->
+        <div id="pokemonListScreen" class="screen hidden">
+            <h2>All Playable Pokémon</h2>
+            <div class="pokemon-list-container">
+                <ul id="allPokemonList" class="pokemon-list">
+                    <!-- Pokémon list will be dynamically populated here -->
+                </ul>
+            </div>
+            <button class="btn btn-primary" onclick="showMainMenu()">Back to Main Menu</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game" class="screen hidden">
+            <div class="letter-display" id="currentLetter">A</div>
+            <div class="timer" id="timer">10</div>
+
+            <div class="input-container">
+                <input type="text" id="pokemonInput" placeholder="Enter a Pokémon name..." maxlength="20">
+                <br><br>
+                <button class="btn btn-primary" id="submitBtn" onclick="submitGuess()">Submit</button>
+                <button class="btn btn-secondary" id="skipBtn" onclick="skipRound()">Skip</button>
+            </div>
+
+            <div class="message" id="message"></div>
+
+            <div class="score">
+                <div class="score-item">
+                    <div>Correct: <span id="correct">0</span></div>
+                </div>
+                <div class="score-item">
+                    <div>Round: <span id="round">1</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameOver" class="screen hidden">
+            <div class="game-over">
+                <h2>Game Over!</h2>
+                <p>Final Score: <span id="finalScore">0</span> correct answers</p>
+                <p>Rounds Played: <span id="finalRounds">0</span></p>
+            </div>
+            <button class="btn btn-primary" onclick="restartGame()">Play Again</button>
+            <button class="btn btn-secondary" onclick="showMainMenu()">Main Menu</button>
+        </div>
+    </div>
+
+    <script>
+        // Comprehensive list of Pokémon organized by first letter
+        // This list includes Pokémon from various generations (I-IX), regional forms,
+        // Mega Evolutions, Gigantamax forms, and Paradox Pokémon to provide
+        // the most challenging and extensive experience possible.
+        const pokemonByLetter = {
+            'A': [
+                'Abomasnow', 'Abra', 'Absol', 'Accelgor', 'Aegislash', 'Aerodactyl', 'Aggron', 'Aipom', 'Alakazam', 'Alcremie',
+                'Alolan Diglett', 'Alolan Dugtrio', 'Alolan Exeggutor', 'Alolan Geodude', 'Alolan Golem', 'Alolan Graveler',
+                'Alolan Grimer', 'Alolan Marowak', 'Alolan Meowth', 'Alolan Muk', 'Alolan Ninetales', 'Alolan Persian',
+                'Alolan Raichu', 'Alolan Raticate', 'Alolan Rattata', 'Alolan Sandshrew', 'Alolan Sandslash', 'Alolan Vulpix',
+                'Alomomola', 'Altaria', 'Amaura', 'Ambipom', 'Amoonguss', 'Ampharos', 'Annihilape', 'Anorith', 'Appletun',
+                'Applin', 'Araquanid', 'Arbok', 'Arcanine', 'Arceus', 'Archen', 'Archeops', 'Archaludon', 'Arctibax',
+                'Arctovish', 'Arctozolt', 'Ariados', 'Armarouge', 'Armaldo', 'Aromatisse', 'Aron', 'Arrokuda', 'Articuno',
+                'Articuno-Galar', 'Audino', 'Aurorus', 'Avalugg', 'Avalugg-Hisuian', 'Axew', 'Azelf', 'Azumarill', 'Azurill',
+                'Aerodactyl-Mega', 'Aggron-Mega', 'Alakazam-Mega', 'Altaria-Mega', 'Ampharos-Mega', 'Audino-Mega',
+                'Absol-Mega', 'Aegislash-Blade', 'Aegislash-Shield', 'Armaldo', 'Arrokuda', 'Azelf', 'Azumarill', 'Azurill',
+                'Aggron', 'Amoonguss', 'Arcanine', 'Absol', 'Altaria', 'Ampharos', 'Aerodactyl', 'Alakazam', 'Abra', 'Articuno',
+                'Arceus', 'Archen', 'Archeops', 'Aipom', 'Ambipom', 'Ariados', 'Aron', 'Aggron', 'Anorith', 'Armaldo',
+                'Absol', 'Altaria', 'Azumarill', 'Azurill', 'Audino', 'Accelgor', 'Aegislash', 'Aerodactyl-Mega', 'Aggron-Mega',
+                'Alakazam-Mega', 'Alolan Exeggutor', 'Alolan Golem', 'Alolan Graveler', 'Alolan Grimer', 'Alolan Marowak',
+                'Alolan Meowth', 'Alolan Muk', 'Alolan Ninetales', 'Alolan Persian', 'Alolan Raichu', 'Alolan Sandshrew',
+                'Alolan Sandslash', 'Alolan Vulpix', 'Altaria-Mega', 'Ampharos-Mega', 'Anorith', 'Araquanid', 'Arbok', 'Arcanine',
+                'Arceus', 'Archaludon', 'Archeops', 'Arctibax', 'Arctovish', 'Arctozolt', 'Ariados', 'Armarouge', 'Armaldo',
+                'Aromatisse', 'Aron', 'Arrokuda', 'Articuno', 'Articuno-Galar', 'Audino-Mega', 'Aurorus', 'Avalugg',
+                'Avalugg-Hisuian', 'Axew', 'Azelf', 'Azumarill', 'Azurill', 'Armarouge', 'Arctibax', 'Archaludon', 'Annihilape',
+                'Appletun-Gigantamax', 'Arcanine-Hisuian'
+            ],
+            'B': [
+                'Bagon', 'Baltoy', 'Banette', 'Barbacle', 'Barbaracle', 'Barboach', 'Basculegion', 'Basculin', 'Bastiodon',
+                'Baxcalibur', 'Bayleef', 'Beartic', 'Beautifly', 'Beedrill', 'Beheeyem', 'Beldum', 'Bellibolt', 'Bellossom',
+                'Bellsprout', 'Bergmite', 'Bewear', 'Bibarel', 'Bidoof', 'Binacle', 'Bisharp', 'Blacephalon', 'Blastoise',
+                'Blaziken', 'Blipbug', 'Blissey', 'Blitzle', 'Boldore', 'Bombirdier', 'Bonsly', 'Bouffalant', 'Bounsweet',
+                'Braixen', 'Braviary', 'Breloom', 'Brionne', 'Bronzong', 'Bronzor', 'Brute Bonnet', 'Bruxish', 'Budew',
+                'Buizel', 'Bulbasaur', 'Buneary', 'Bunnelby', 'Burmy', 'Butterfree', 'Buzzwole', 'Blastoise-Mega',
+                'Blaziken-Mega', 'Braviary-Hisuian', 'Beedrill-Mega', 'Banette-Mega', 'Blissey', 'Bagon', 'Baltoy', 'Barboach',
+                'Basculin-Red-Striped', 'Basculin-Blue-Striped', 'Bastiodon', 'Bayleef', 'Beartic', 'Beautifly', 'Beedrill',
+                'Beheeyem', 'Beldum', 'Bellossom', 'Bellsprout', 'Bergmite', 'Bewear', 'Bibarel', 'Bidoof', 'Binacle',
+                'Bisharp', 'Blacephalon', 'Blastoise', 'Blaziken', 'Blipbug', 'Blissey', 'Blitzle', 'Boldore', 'Bombirdier',
+                'Bonsly', 'Bouffalant', 'Bounsweet', 'Braixen', 'Braviary', 'Breloom', 'Brionne', 'Bronzong', 'Bronzor',
+                'Brute Bonnet', 'Bruxish', 'Budew', 'Buizel', 'Bulbasaur', 'Buneary', 'Bunnelby', 'Burmy-Plant', 'Burmy-Sandy',
+                'Burmy-Trash', 'Butterfree', 'Butterfree-Gigantamax', 'Buzzwole', 'Baxcalibur', 'Bellibolt', 'Bombirdier', 'Brute Bonnet',
+                'Basculin-White-Striped', 'Blaziken-Mega', 'Blipbug', 'Boltund'
+            ],
+            'C': [
+                'Cacnea', 'Cacturne', 'Calyrex', 'Camerupt', 'Capsakid', 'Carbink', 'Carkol', 'Carnivine', 'Carracosta',
+                'Carvanha', 'Cascoon', 'Castform', 'Caterpie', 'Celesteela', 'Celebi', 'Centiskorch', 'Ceruledge', 'Chandelure',
+                'Chansey', 'Charcadet', 'Charizard', 'Charmander', 'Charjabug', 'Chatot', 'Chesnaught', 'Chespin', 'Chewtle',
+                'Chien-Pao', 'Chikorita', 'Chimchar', 'Chimecho', 'Chinchou', 'Chingling', 'Cinccino', 'Cinderace', 'Clamperl',
+                'Clauncher', 'Clawitzer', 'Claydol', 'Clefable', 'Clefairy', 'Cleffa', 'Cloyster', 'Clobbopus', 'Coalossal',
+                'Cobalion', 'Cofagrigus', 'Combee', 'Combusken', 'Copperajah', 'Corphish', 'Corsola', 'Corsola-Galarian',
+                'Corviknight', 'Corvisquire', 'Cosmoem', 'Cosmog', 'Cottonee', 'Crabominable', 'Crabrawler', 'Cradily',
+                'Cramorant', 'Cramorant-Gorging', 'Cramorant-Gulping', 'Cranidos', 'Crawdaunt', 'Cresselia', 'Croagunk',
+                'Crobat', 'Croconaw', 'Crustle', 'Cryogonal', 'Cubchoo', 'Cubone', 'Cufant', 'Cursola', 'Cyclizar', 'Cyndaquil',
+                'Camerupt-Mega', 'Centiskorch-Gigantamax', 'Charizard-Mega-X', 'Charizard-Mega-Y', 'Charizard-Gigantamax',
+                'Cinderace-Gigantamax', 'Coalossal-Gigantamax', 'Copperajah-Gigantamax', 'Corviknight-Gigantamax',
+                'Chandelure', 'Chatot', 'Chesnaught', 'Chespin', 'Chikorita', 'Chimecho', 'Chinchou', 'Chingling', 'Cinccino',
+                'Clamperl', 'Clauncher', 'Clawitzer', 'Claydol', 'Clefable', 'Clefairy', 'Cleffa', 'Cloyster', 'Clobbopus',
+                'Cobalion', 'Cofagrigus', 'Combee', 'Combusken', 'Corphish', 'Corsola', 'Cradily', 'Cranidos', 'Crawdaunt',
+                'Cresselia', 'Croagunk', 'Crobat', 'Croconaw', 'Crustle', 'Cryogonal', 'Cubchoo', 'Cubone', 'Cufant',
+                'Cursola', 'Ceruledge', 'Charcadet', 'Capsakid', 'Chien-Pao', 'Cyclizar', 'Carkol', 'Castform-Rainy',
+                'Castform-Snowy', 'Castform-Sunny', 'Celesteela', 'Chimecho', 'Clefairy', 'Calyrex-Ice-Rider', 'Calyrex-Shadow-Rider',
+                'Charmeleon', 'Chingling'
+            ],
+            'D': [
+                'Darkrai', 'Darmanitan', 'Darmanitan-Galarian', 'Darmanitan-Zen', 'Darmanitan-Zen-Galarian', 'Dartrix',
+                'Dachsbun', 'Decidueye', 'Decidueye-Hisuian', 'Dedenne', 'Deerling', 'Deino', 'Delcatty', 'Delibird',
+                'Delphox', 'Deoxys', 'Deoxys-Attack', 'Deoxys-Defense', 'Deoxys-Speed', 'Dewgong', 'Dewott', 'Dhelmise',
+                'Dialga', 'Dialga-Origin', 'Diancie', 'Diancie-Mega', 'Diggersby', 'Diglett', 'Ditto', 'Dodrio', 'Doduo',
+                'Dolliv', 'Donphan', 'Dracovish', 'Dracozolt', 'Dragalge', 'Dragonair', 'Dragonite', 'Drakloak', 'Drampa',
+                'Drapion', 'Dratini', 'Drednaw', 'Drednaw-Gigantamax', 'Dreepy', 'Drifblim', 'Drifloon', 'Drilbur',
+                'Drizzile', 'Drowzee', 'Druddigon', 'Dubwool', 'Ducklett', 'Dudunsparce', 'Dugtrio', 'Dunsparce', 'Duosion',
+                'Duraludon', 'Duraludon-Gigantamax', 'Durant', 'Dusclops', 'Dusknoir', 'Duskull', 'Dustox', 'Dwebble',
+                'Darkrai', 'Decidueye', 'Dedenne', 'Deerling', 'Deino', 'Delcatty', 'Delibird', 'Delphox', 'Deoxys',
+                'Dewgong', 'Dewott', 'Dhelmise', 'Dialga', 'Diancie', 'Diggersby', 'Diglett', 'Ditto', 'Dodrio', 'Doduo',
+                'Donphan', 'Dracovish', 'Dracozolt', 'Dragalge', 'Dragonair', 'Dragonite', 'Drakloak', 'Drampa', 'Drapion',
+                'Dratini', 'Drednaw', 'Dreepy', 'Drifblim', 'Drifloon', 'Drilbur', 'Drizzile', 'Drowzee', 'Druddigon',
+                'Dubwool', 'Ducklett', 'Dudunsparce', 'Dugtrio', 'Dunsparce', 'Duosion', 'Duraludon', 'Durant', 'Dusclops',
+                'Dusknoir', 'Duskull', 'Dustox', 'Dwebble', 'Dachsbun', 'Dolliv', 'Drifblim', 'Drakloak'
+            ],
+            'E': [
+                'Eelektross', 'Eelektrik', 'Eevee', 'Eevee-Gigantamax', 'Eiscue', 'Ekans', 'Eldegoss', 'Electabuzz',
+                'Electivire', 'Electrike', 'Electrode', 'Electrode-Hisuian', 'Elekid', 'Elgyem', 'Emboar', 'Emolga',
+                'Empoleon', 'Enamorus', 'Enamorus-Therian', 'Entei', 'Espathra', 'Escavalier', 'Espeon', 'Espurr', 'Excadrill',
+                'Exeggcute', 'Exeggutor', 'Exeggutor-Alolan', 'Exploud', 'Eternatus', 'Eternatus-Eternamax', 'Ekans',
+                'Electabuzz', 'Electivire', 'Electrike', 'Electrode', 'Elekid', 'Elgyem', 'Emboar', 'Emolga', 'Empoleon',
+                'Enamorus', 'Entei', 'Escavalier', 'Espeon', 'Espurr', 'Excadrill', 'Exeggcute', 'Exeggutor', 'Exploud', 'Eternatus',
+                'Eiscue', 'Eldegoss', 'Espathra', 'Enamorus-Therian', 'Eternatus', 'Eternatus-Eternamax'
+            ],
+            'F': [
+                'Falinks', 'Farfetchd', 'Farfetchd-Galarian', 'Farigiraf', 'Fellteel', 'Fennekin', 'Feraligatr', 'Ferrothorn',
+                'Ferroseed', 'Fidough', 'Finneon', 'Flabebe', 'Flareon', 'Fletchinder', 'Fletchling', 'Flittle', 'Floatzel',
+                'Floette', 'Florges', 'Flutter Mane', 'Flygon', 'Foongus', 'Forretress', 'Frigibax', 'Froakie',
+                'Frogadier', 'Froslass', 'Frosmoth', 'Furfrou', 'Furret', 'Feraligatr', 'Ferrothorn', 'Ferroseed',
+                'Finneon', 'Flareon', 'Fletchinder', 'Fletchling', 'Floatzel', 'Floette', 'Florges', 'Flygon', 'Foongus',
+                'Forretress', 'Fraxure', 'Frigibax', 'Froakie', 'Frogadier', 'Froslass', 'Frosmoth', 'Furfrou', 'Furret',
+                'Fidough', 'Flittle', 'Flutter Mane', 'Fidough', 'Flutter Mane', 'Fletchling', 'Fletchinder', 'Florges-Blue',
+                'Florges-Orange', 'Florges-White', 'Florges-Yellow', 'Floette-Blue', 'Floette-Orange', 'Floette-White',
+                'Floette-Yellow', 'Flabebe-Blue', 'Flabebe-Orange', 'Flabebe-White', 'Flabebe-Yellow'
+            ],
+            'G': [
+                'Gabite', 'Gallade', 'Galarian Articuno', 'Galarian Corsola', 'Galarian Darmanitan', 'Galarian Farfetchd',
+                'Galarian Linoone', 'Galarian Meowth', 'Galarian Mr. Mime', 'Galarian Ponyta', 'Galarian Rapidash',
+                'Galarian Slowbro', 'Galarian Slowking', 'Galarian Slowpoke', 'Galarian Stunfisk', 'Galarian Weezing',
+                'Galarian Yamask', 'Galarian Zigzagoon', 'Garchomp', 'Garchomp-Mega', 'Gardevoir', 'Gardevoir-Mega',
+                'Garganacl', 'Gastrodon', 'Gholdengo', 'Genesect', 'Gengar', 'Gengar-Mega', 'Gengar-Gigantamax', 'Geodude',
+                'Geodude-Alolan', 'Gible', 'Gigalith', 'Gimmighoul', 'Girafarig', 'Giratina-Altered', 'Giratina-Origin',
+                'Glaceon', 'Glalie', 'Glalie-Mega', 'Glimmet', 'Glimmora', 'Gligar', 'Gliscor', 'Gloom', 'Gogoat', 'Golbat',
+                'Goldeen', 'Golduck', 'Golem', 'Golem-Alolan', 'Golett', 'Golisopod', 'Goodra', 'Goodra-Hisuian', 'Goomy',
+                'Gorebyss', 'Gossifleur', 'Gothita', 'Gothitelle', 'Gothorita', 'Gourgeist', 'Gourgeist-Large', 'Gourgeist-Small',
+                'Gourgeist-Super', 'Grafaiai', 'Granbull', 'Great Tusk', 'Greavard', 'Greedent', 'Greninja', 'Grimer',
+                'Grimer-Alolan', 'Grookey', 'Groudon', 'Groudon-Primal', 'Grovyle', 'Growlithe', 'Growlithe-Hisuian', 'Grubbin',
+                'Grumpig', 'Gulpin', 'Gumshoos', 'Gurdurr', 'Guzzlord', 'Gyarados', 'Gyarados-Mega', 'Gastly', 'Gengar', 'Gible',
+                'Gigalith', 'Glalie', 'Gligar', 'Gliscor', 'Gloom', 'Golbat', 'Goldeen', 'Golduck', 'Golem', 'Golett', 'Golisopod',
+                'Goodra', 'Goodra-Hisuian', 'Goomy', 'Gorebyss', 'Gossifleur', 'Gothita', 'Gothitelle', 'Gothorita', 'Gourgeist',
+                'Grafaiai', 'Granbull', 'Great Tusk', 'Greavard', 'Greedent', 'Greninja', 'Grimer', 'Grookey', 'Grovyle',
+                'Growlithe', 'Grubbin', 'Grumpig', 'Gulpin', 'Gumshoos', 'Gurdurr', 'Guzzlord', 'Gyarados', 'Garganacl',
+                'Gholdengo', 'Glimmet', 'Glimmora', 'Grafaiai', 'Great Tusk', 'Groudon-Primal', 'Grovyle', 'Gigantamax Machamp',
+                'Gigantamax Melmetal', 'Gigantamax Snorlax', 'Gigantamax Coalossal', 'Gigantamax Lapras', 'Gigantamax Duraludon',
+                'Gigantamax Urshifu-Single-Strike', 'Gigantamax Urshifu-Rapid-Strike', 'Gigantamax Copperajah', 'Gigantamax Blastoise',
+                'Gigantamax Charizard', 'Gigantamax Venusaur', 'Gigantamax Cinderace', 'Gigantamax Inteleon', 'Gigantamax Rillaboom',
+                'Gigantamax Orbeetle', 'Gigantamax Grimmsnarl', 'Gigantamax Hatterene', 'Gigantamax Kingler', 'Gigantamax Appletun',
+                'Gigantamax Flapple', 'Gigantamax Sandaconda', 'Gigantamax Toxtricity', 'Gigantamax Centiskorch', 'Gigantamax Corviknight',
+                'Gigantamax Alcremie', 'Gigantamax Eevee', 'Gigantamax Pikachu'
+            ],
+            'H': [
+                'Hakamoo', 'Hariyama', 'Hatenna', 'Hatterene', 'Hattrem', 'Haunter', 'Haxorus', 'Heatmor', 'Heatran',
+                'Heliolisk', 'Helioptile', 'Heracross', 'Heracross-Mega', 'Herdier', 'Hippopotas', 'Hippowdon', 'Hitmonchan',
+                'Hitmonlee', 'Hitmontop', 'Hisuian Arcanine', 'Hisuian Avalugg', 'Hisuian Braviary', 'Hisuian Decidueye',
+                'Hisuian Electrode', 'Hisuian Goodra', 'Hisuian Growlithe', 'Hisuian Lilligant', 'Hisuian Qwilfish',
+                'Hisuian Sliggoo', 'Hisuian Typhlosian', 'Hisuian Voltorb', 'Hisuian Zoroark', 'Hisuian Zorua', 'Ho-Oh',
+                'Honchkrow', 'Honedge', 'Hoopa-Confined', 'Hoopa-Unbound', 'Hoppip', 'Horsea', 'Houndoom', 'Houndoom-Mega',
+                'Houndour', 'Huntail', 'Hydreigon', 'Hypno', 'Heliolisk', 'Helioptile', 'Herdier', 'Hippopotas', 'Hippowdon',
+                'Hitmonchan', 'Hitmonlee', 'Hitmontop', 'Honchkrow', 'Honedge', 'Hoppip', 'Horsea', 'Houndoom', 'Houndour',
+                'Huntail', 'Hydreigon', 'Hariyama', 'Haxorus', 'Heatmor', 'Heatran', 'Hatterene-Gigantamax'
+            ],
+            'I': [
+                'Igglybuff', 'Illumise', 'Impidimp', 'Incineroar', 'Indeedee', 'Indeedee-Female', 'Infernape', 'Inkay',
+                'Inteleon', 'Inteleon-Gigantamax', 'Iron Bundle', 'Iron Hands', 'Iron Jugulis', 'Iron Moth', 'Iron Thorns',
+                'Iron Treads', 'Iron Valiant', 'Iron Leaves', 'Ivysaur'
+            ],
+            'J': [
+                'Jangmo-o', 'Jellicent', 'Jigglypuff', 'Jirachi', 'Jolteon', 'Joltik', 'Jumpluff', 'Jynx'
+            ],
+            'K': [
+                'Kabuto', 'Kabutops', 'Kadabra', 'Kakuna', 'Kangaskhan', 'Kangaskhan-Mega', 'Kecleon', 'Keldeo-Ordinary',
+                'Keldeo-Resolute', 'Kingdra', 'Kingler', 'Kingler-Gigantamax', 'Kirlia', 'Klang', 'Klawf', 'Klefki', 'Klink',
+                'Klinklang', 'Koffing', 'Komala', 'Kommo-o', 'Koraidon', 'Krabby', 'Kricketot', 'Kricketune', 'Krookodile',
+                'Krokorok', 'Kubfu', 'Kyogre', 'Kyogre-Primal', 'Kyurem', 'Kyurem-Black', 'Kyurem-White'
+            ],
+            'L': [
+                'Lairon', 'Lampent', 'Landorus-Incarnate', 'Landorus-Therian', 'Lanturn', 'Lapras', 'Lapras-Gigantamax',
+                'Larvesta', 'Larvitar', 'Latias', 'Latias-Mega', 'Latios', 'Latios-Mega', 'Leafeon', 'Leavanny', 'Ledian',
+                'Ledyba', 'Indeedee', 'Lickilicky', 'Lickitung', 'Liepard', 'Lilligant', 'Lilligant-Hisuian', 'Lillipup',
+                'Lileep', 'Linoone', 'Linoone-Galarian', 'Litwick', 'Lokix', 'Lombre', 'Lopunny', 'Lopunny-Mega', 'Lotad',
+                'Lucario', 'Lucario-Mega', 'Ludicolo', 'Lugia', 'Lumineon', 'Lunala', 'Lunatone', 'Lurantis', 'Luxio',
+                'Luxray', 'Lycanroc-Midday', 'Lycanroc-Midnight', 'Lycanroc-Dusk'
+            ],
+            'M': [
+                'Machamp', 'Machamp-Gigantamax', 'Machoke', 'Machop', 'Magby', 'Magcargo', 'Magearna', 'Magikarp', 'Magmar',
+                'Magmortar', 'Magnemite', 'Magneton', 'Magnezone', 'Maushold', 'Makuhita', 'Malamar', 'Mamoswine', 'Manaphy',
+                'Mandibuzz', 'Manectric', 'Manectric-Mega', 'Mankey', 'Mantine', 'Mantyke', 'Maractus', 'Mareanie', 'Mareep',
+                'Marill', 'Marowak', 'Marowak-Alolan', 'Marshadow', 'Marshtomp', 'Maschiff', 'Masquerain', 'Mawile',
+                'Mawile-Mega', 'Medicham', 'Medicham-Mega', 'Meditite', 'Melmetal', 'Melmetal-Gigantamax', 'Meltan',
+                'Meowscarada', 'Meowstic-Male', 'Meowstic-Female', 'Meowth', 'Meowth-Alolan', 'Meowth-Galarian', 'Meowth-Gigantamax',
+                'Mesprit', 'Metagross', 'Metagross-Mega', 'Metang', 'Metapod', 'Mew', 'Mewtwo', 'Mewtwo-Mega-X', 'Mewtwo-Mega-Y',
+                'Mienshao', 'Mienfoo', 'Mightyena', 'Milcery', 'Milotic', 'Miltank', 'Mimikyu', 'Minccino', 'Minior',
+                'Minun', 'Miraidon', 'Misdreavus', 'Mismagius', 'Moltres', 'Moltres-Galar', 'Monferno', 'Morelull', 'Morgrem',
+                'Morpeko', 'Mothim', 'Mr. Mime', 'Mr. Mime-Galarian', 'Mr. Rime', 'Mudbray', 'Mudkip', 'Mudsdale', 'Muk',
+                'Muk-Alolan', 'Munkidori', 'Munchlax', 'Munna', 'Murkrow', 'Musharna'
+            ],
+            'N': [
+                'Nacli', 'Naclstack', 'Naganadel', 'Natu', 'Necrozma', 'Necrozma-Dawn Wings', 'Necrozma-Dusk Mane',
+                'Necrozma-Ultra', 'Nickit', 'Nidoking', 'Nidoqueen', 'Nidoran♀', 'Nidoran♂', 'Nidorina', 'Nidorino',
+                'Nihilego', 'Nincada', 'Ninetales', 'Ninetales-Alolan', 'Ninjask', 'Noctowl', 'Noibat', 'Noivern',
+                'Nosepass', 'Numel', 'Nymble', 'Nuzleaf'
+            ],
+            'O': [
+                'Obstagoon', 'Octillery', 'Oddish', 'Ogerpon', 'Oinkologne', 'Okidogi', 'Omanyte', 'Omastar', 'Onix',
+                'Oranguru', 'Orbeetle', 'Orbeetle-Gigantamax', 'Oricorio-Baile', 'Oricorio-Pom-Pom', 'Oricorio-Pau',
+                'Oricorio-Sensu', 'Orthworm', 'Oshawott', 'Overqwil'
+            ],
+            'P': [
+                'Pachirisu', 'Palafin', 'Palafin-Hero', 'Palkia', 'Palkia-Origin', 'Paldean Tauros', 'Paldean Tauros-Aqua',
+                'Paldean Tauros-Blaze', 'Palossand', 'Pangoro', 'Panpour', 'Pansear', 'Pansage', 'Paras', 'Parasect',
+                'Pawmi', 'Pawmo', 'Pawmot', 'Pawniard', 'Pecharunt', 'Pelipper', 'Perrserker', 'Persian', 'Persian-Alolan',
+                'Petilil', 'Phanpy', 'Phantump', 'Pheromosa', 'Phione', 'Pichu', 'Pidgeot', 'Pidgeot-Mega', 'Pidgeotto',
+                'Pidgey', 'Pidove', 'Pikachu', 'Pikachu-Gigantamax', 'Pikachu-Alola-Cap', 'Pikachu-Hoenn-Cap',
+                'Pikachu-Kalos-Cap', 'Pikachu-Original-Cap', 'Pikachu-Partner-Cap', 'Pikachu-Sinnoh-Cap', 'Pikachu-Unova-Cap',
+                'Pikachu-World-Cap', 'Pikipek', 'Piloswine', 'Pincurchin', 'Pineco', 'Pinsir', 'Pinsir-Mega', 'Piplup',
+                'Plusle', 'Poipole', 'Politoed', 'Poliwag', 'Poliwhirl', 'Poliwrath', 'Ponyta', 'Ponyta-Galarian', 'Poplio',
+                'Porygon', 'Porygon2', 'Porygon-Z', 'Primeape', 'Primarina', 'Prinplup', 'Probopass', 'Psyduck', 'Pupitar',
+                'Pyroar', 'Pyukumuku'
+            ],
+            'Q': [
+                'Quagsire', 'Quaquaval', 'Quaxly', 'Quaxwell', 'Quilava', 'Qwilfish', 'Qwilfish-Hisuian'
+            ],
+            'R': [
+                'Raboot', 'Raichu', 'Raichu-Alolan', 'Raikou', 'Ralts', 'Rampardos', 'Rapidash', 'Rapidash-Galarian',
+                'Raticate', 'Raticate-Alolan', 'Rattata', 'Rattata-Alolan', 'Rayquaza', 'Rayquaza-Mega', 'Regice',
+                'Regidrago', 'Regieleki', 'Regigigas', 'Regirock', 'Registeel', 'Relicanth', 'Remoraid', 'Reshiram',
+                'Reuniclus', 'Rhyhorn', 'Rhydon', 'Rhyperior', 'Ribombee', 'Rillaboom', 'Rillaboom-Gigantamax', 'Riolu',
+                'Roaring Moon', 'Rockruff', 'Roggenrola', 'Rolycoly', 'Rookidee', 'Roselia', 'Roserade', 'Rotom',
+                'Rotom-Fan', 'Rotom-Frost', 'Rotom-Heat', 'Rotom-Mow', 'Rotom-Wash', 'Rowlet', 'Rufflet'
+            ],
+            'S': [
+                'Sableye', 'Sableye-Mega', 'Salamence', 'Salamence-Mega', 'Salandit', 'Salazzle', 'Samurott', 'Samurott-Hisuian',
+                'Sandaconda', 'Sandaconda-Gigantamax', 'Sandile', 'Sandshrew', 'Sandshrew-Alolan', 'Sandslash',
+                'Sandslash-Alolan', 'Sandy Shocks', 'Sawk', 'Sawsbuck', 'Scizor', 'Scizor-Mega', 'Sceptile', 'Sceptile-Mega',
+                'Scorbunny', 'Scrafty', 'Scraggy', 'Scream Tail', 'Scyther', 'Seadra', 'Seaking', 'Sealeo', 'Seedot', 'Seel',
+                'Seismitoad', 'Sentret', 'Serperior', 'Servine', 'Seviper', 'Sharpedo', 'Sharpedo-Mega', 'Shaymin-Land',
+                'Shaymin-Sky', 'Shedinja', 'Shelgon', 'Shellder', 'Shellos', 'Shelmet', 'Shieldon', 'Shiftry', 'Shiinotic',
+                'Shinx', 'Shroodle', 'Shroomish', 'Shuckle', 'Shuppet', 'Sigilyph', 'Silcoon', 'Silicobra', 'Silvally',
+                'Simipour', 'Simisage', 'Simisear', 'Sinistea', 'Sizzlipede', 'Skarmory', 'Skeledirge', 'Skiploom', 'Skiddo',
+                'Skorupi', 'Skrelp', 'Skuntank', 'Slaking', 'Slakoth', 'Sliggoo', 'Sliggoo-Hisuian', 'Slither Wing', 'Slowbro',
+                'Slowbro-Galarian', 'Slowbro-Mega', 'Slowking', 'Slowking-Galarian', 'Slowpoke', 'Slowpoke-Galarian', 'Slugma',
+                'Slurpuff', 'Smeargle', 'Smoliv', 'Smoochum', 'Sneasel', 'Sneasler', 'Snorlax', 'Snorlax-Gigantamax',
+                'Snorunt', 'Snover', 'Snivy', 'Snubbull', 'Sobble', 'Solgaleo', 'Solosis', 'Solrock', 'Spearow', 'Spectrier',
+                'Spheal', 'Spidops', 'Spinarak', 'Spinda', 'Spiritomb', 'Spoink', 'Sprigatito', 'Squawkabilly', 'Squirtle',
+                'Stakataka', 'Stantler', 'Staraptor', 'Staravia', 'Starly', 'Starmie', 'Staryu', 'Steenee', 'Stonjourner',
+                'Stoutland', 'Stufful', 'Stunfisk', 'Stunfisk-Galarian', 'Stunky', 'Sudowoodo', 'Suicune', 'Sunflora',
+                'Sunkern', 'Surskit', 'Swablu', 'Swadloon', 'Swalot', 'Swampert', 'Swampert-Mega', 'Swanna', 'Swellow',
+                'Swinub', 'Swirlix', 'Swoobat', 'Sylveon'
+            ],
+            'T': [
+                'Tadbulb', 'Talonflame', 'Tangela', 'Tangrowth', 'Tandemaus', 'Tapu Bulu', 'Tapu Fini', 'Tapu Koko',
+                'Tapu Lele', 'Tarountula', 'Tauros', 'Tauros-Paldean-Aqua', 'Tauros-Paldean-Blaze', 'Tauros-Paldean-Combat',
+                'Teddiursa', 'Tentacool', 'Tentacruel', 'Terapagos', 'Thievul', 'Throh', 'Thundurus-Incarnate', 'Thundurus-Therian',
+                'Timburr', 'Tinkaton', 'Tinkatuff', 'Tinkatink', 'Toedscool', 'Toedscruel', 'Togedemaru', 'Togekiss',
+                'Togepi', 'Togetic', 'Torchic', 'Torkoal', 'Tornadus-Incarnate', 'Tornadus-Therian', 'Torracat', 'Torterra',
+                'Totodile', 'Toucannon', 'Toxtricity-Amped', 'Toxtricity-Low Key', 'Toxtricity-Gigantamax', 'Toxapex', 'Toxel',
+                'Tranquill', 'Trapinch', 'Treecko', 'Trevenant', 'Tropius', 'Trubbish', 'Tsareena', 'Turtonator', 'Turtwig',
+                'Tympole', 'Typhlosion', 'Typhlosion-Hisuian', 'Tyranitar', 'Tyranitar-Mega', 'Tyrantrum', 'Tyrogue', 'Tyrunt'
+            ],
+            'U': [
+                'Umbreon', 'Unfezant', 'Unown', 'Urshifu-Rapid Strike', 'Urshifu-Single Strike', 'Urshifu-Gigantamax',
+                'Ursaluna', 'Ursaluna-Bloodmoon', 'Uxie'
+            ],
+            'V': [
+                'Valiant', 'Vanillish', 'Vanillite', 'Vanilluxe', 'Vaporeon', 'Varoom', 'Veluza', 'Venipede', 'Venomoth',
+                'Venonat', 'Venusaur', 'Venusaur-Mega', 'Venusaur-Gigantamax', 'Vespiquen', 'Victini', 'Victreebel', 'Vigoroth',
+                'Vikavolt', 'Vileplume', 'Virizion', 'Vivillon', 'Volbeat', 'Volcanion', 'Volcarona', 'Voltorb',
+                'Voltorb-Hisuian', 'Vullaby', 'Vulpix', 'Vulpix-Alolan'
+            ],
+            'W': [
+                'Wabash', 'Wailmer', 'Wailord', 'Wailord-Gigantamax', 'Walking Wake', 'Walrein', 'Wartortle', 'Watchog',
+                'Wattrel', 'Weavile', 'Weedle', 'Weepinbell', 'Weezing', 'Weezing-Galarian', 'Whimsicott', 'Whirlipede',
+                'Whiscash', 'Whismur', 'Wigglytuff', 'Wimpod', 'Wingull', 'Wishiwashi', 'Wishiwashi-School', 'Wo-Chien',
+                'Wobbuffet', 'Wooper', 'Wooper-Paldean', 'Wormadam-Plant', 'Wormadam-Sandy', 'Wormadam-Trash', 'Wugtrio',
+                'Wynaut', 'Wyrdeer'
+            ],
+            'X': [
+                'Xerneas', 'Xurkitree', 'Xatu'
+            ],
+            'Y': [
+                'Yamask', 'Yamask-Galarian', 'Yamper', 'Yanma', 'Yanmega', 'Yveltal'
+            ],
+            'Z': [
+                'Zacian', 'Zacian-Crowned', 'Zamazenta', 'Zamazenta-Crowned', 'Zangoose', 'Zapdos', 'Zapdos-Galar', 'Zarude',
+                'Zebstrika', 'Zekrom', 'Zeraora', 'Zigzagoon', 'Zigzagoon-Galarian', 'Zoroark', 'Zoroark-Hisuian', 'Zorua',
+                'Zorua-Hisuian', 'Zubat', 'Zweilous', 'Zygarde-10%', 'Zygarde-50%', 'Zygarde-Complete'
+            ]
+        };
+
+        // Current game state object
+        let currentGame = {
+            letter: '',
+            timeLeft: 10,
+            timer: null,
+            correct: 0,
+            round: 1,
+            isActive: false,
+            guessedPokemon: new Set() // Stores unique Pokémon guessed in the current game
+        };
+
+        /**
+         * Helper function to show a specific screen and hide all others.
+         * @param {string} screenId - The ID of the screen to show (e.g., 'mainMenu', 'game').
+         */
+        function showScreen(screenId) {
+            const screens = document.querySelectorAll('.screen');
+            screens.forEach(screen => {
+                screen.classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+
+            // Handle specific screen setups
+            if (screenId === 'pokemonListScreen') {
+                populateAllPokemonList();
+            } else if (screenId === 'game') {
+                disableGameInput(false); // Enable input for the game screen
+            } else {
+                disableGameInput(true); // Ensure inputs are disabled for non-game screens
+                // It's crucial not to clear existing messages for game over screen, etc.
+                // Only clear input and message when starting a new round in game screen.
+            }
+        }
+
+        /**
+         * Helper function to enable or disable game input elements (text field and buttons).
+         * @param {boolean} disable - True to disable, false to enable.
+         */
+        function disableGameInput(disable) {
+            document.getElementById('pokemonInput').disabled = disable;
+            document.getElementById('submitBtn').disabled = disable;
+            document.getElementById('skipBtn').disabled = disable;
+        }
+
+        /**
+         * Gets a random letter from the keys of the pokemonByLetter object.
+         * @returns {string} A random letter.
+         */
+        function getRandomLetter() {
+            const letters = Object.keys(pokemonByLetter);
+            return letters[Math.floor(Math.random() * letters.length)];
+        }
+
+        /**
+         * Starts the game, hides the menu, and shows the game screen.
+         * Initializes game state and starts a new round.
+         */
+        function startGame() {
+            // Reset game state for a new game
+            currentGame = {
+                letter: '',
+                timeLeft: 10,
+                timer: null,
+                correct: 0,
+                round: 1,
+                isActive: true,
+                guessedPokemon: new Set() // Clear previously guessed Pokémon
+            };
+
+            updateDisplay(); // Update score and round display
+            showScreen('game'); // Show the game screen
+            startNewRound(); // Begin the first round
+        }
+
+        /**
+         * Starts a new round of the game.
+         * Selects a new random letter, resets the timer, clears input and messages.
+         */
+        function startNewRound() {
+            if (!currentGame.isActive) return; // Only run if game is active
+
+            // Clear any existing timer first to prevent multiple timers running concurrently
+            if (currentGame.timer) {
+                clearInterval(currentGame.timer);
+                currentGame.timer = null; // Ensure timer is truly stopped
+            }
+
+            currentGame.letter = getRandomLetter(); // Get a new random letter
+            currentGame.timeLeft = 10; // Reset time for the new round
+
+            // Immediately update timer display and remove warning class if present
+            document.getElementById('timer').textContent = currentGame.timeLeft;
+            document.getElementById('timer').classList.remove('warning');
+
+            document.getElementById('currentLetter').textContent = currentGame.letter; // Display the new letter
+            document.getElementById('pokemonInput').value = ''; // Clear the input field
+            document.getElementById('pokemonInput').focus(); // Set focus to the input for quick typing
+            document.getElementById('message').textContent = ''; // Clear any previous messages
+            document.getElementById('message').className = 'message'; // Reset message class for styling
+
+            updateDisplay(); // Update current score and round on screen
+            startTimer(); // Start the countdown timer for this new round
+        }
+
+        /**
+         * Manages the countdown timer for each round.
+         * Decrements timeLeft every second and calls timeUp() when it reaches zero.
+         */
+        function startTimer() {
+            // Clear any existing timer before starting a new one to prevent duplicates
+            if (currentGame.timer) {
+                clearInterval(currentGame.timer);
+                currentGame.timer = null;
+            }
+
+            // Start the countdown interval, updating every 1000 milliseconds (1 second)
+            currentGame.timer = setInterval(() => {
+                currentGame.timeLeft--; // Decrement time
+                updateTimer(); // Update the visual timer display
+
+                if (currentGame.timeLeft <= 0) {
+                    timeUp(); // If time runs out, call timeUp function
+                }
+            }, 1000);
+        }
+
+        /**
+         * Updates the timer display element.
+         * Applies a 'warning' class if time is low (3 seconds or less) for visual cue.
+         */
+        function updateTimer() {
+            const timerEl = document.getElementById('timer');
+            timerEl.textContent = currentGame.timeLeft; // Update displayed time
+
+            // Toggle 'warning' class based on remaining time
+            if (currentGame.timeLeft <= 3) {
+                timerEl.classList.add('warning');
+            } else {
+                timerEl.classList.remove('warning');
+            }
+        }
+
+        /**
+         * Updates the displayed correct score and current round number on the UI.
+         */
+        function updateDisplay() {
+            document.getElementById('correct').textContent = currentGame.correct;
+            document.getElementById('round').textContent = currentGame.round;
+        }
+
+        /**
+         * Retrieves the user's guess from the input field and initiates the answer check.
+         * Prevents submission if input is empty or game is not active.
+         */
+        function submitGuess() {
+            const input = document.getElementById('pokemonInput').value.trim();
+            // Guard clause: do nothing if input is empty or game is not active
+            if (!input || !currentGame.isActive) return;
+
+            checkAnswer(input); // Process the user's guess
+        }
+
+        /**
+         * Checks if the user's guess is a valid and *new* Pokémon for the current letter.
+         * Handles correct guesses, incorrect guesses, and repeated valid guesses.
+         * @param {string} guess - The Pokémon name entered by the user.
+         */
+        function checkAnswer(guess) {
+            const normalizedGuess = guess.toLowerCase().trim(); // Normalize guess for case-insensitive comparison
+            // Get a lowercase array of valid Pokémon for the current letter
+            const validPokemonForLetter = pokemonByLetter[currentGame.letter].map(p => p.toLowerCase());
+
+            // --- Check for repeated Pokémon (that were previously correct) ---
+            if (currentGame.guessedPokemon.has(normalizedGuess)) {
+                showMessage(`You already said "${guess}"! Try a new one.`, 'error');
+                document.getElementById('pokemonInput').value = ''; // Clear input
+
+                // Conditional timer reset for duplicates
+                if (currentGame.timeLeft < 5) {
+                    currentGame.timeLeft = 5; // Reset to 5 seconds
+                    updateTimer(); // Update timer display immediately
+                    // Re-ensure the timer interval is running after a potential stop/restart in case of very fast inputs
+                    if (!currentGame.timer) { // Check if timer needs to be explicitly restarted
+                        startTimer();
+                    }
+                } else {
+                    // If timeLeft is 5 or more, the timer simply continues as is.
+                    if (!currentGame.timer) { // Ensure timer is running if it was stopped for some reason
+                        startTimer();
+                    }
+                }
+
+                setTimeout(() => {
+                    document.getElementById('pokemonInput').focus(); // Refocus input
+                    document.getElementById('message').textContent = ''; // Clear message
+                    document.getElementById('message').className = 'message'; // Reset message class
+                }, 1500); // Short delay to read message
+                return; // Exit function immediately, do not process as valid or invalid
+            }
+
+            // If it's NOT a repeated Pokémon, then proceed to check validity.
+            // For correct guesses, we stop the timer to start a new round.
+            // For incorrect guesses, the timer continues.
+            if (validPokemonForLetter.includes(normalizedGuess)) {
+                if (currentGame.timer) {
+                    clearInterval(currentGame.timer); // Stop timer for next round
+                    currentGame.timer = null;
+                }
+                currentGame.correct++; // Increment correct count
+                currentGame.guessedPokemon.add(normalizedGuess); // Add to guessed set
+                showMessage(`Correct! ${guess} is a great choice!`, 'success');
+                // Wait a bit before starting the next round
+                setTimeout(() => {
+                    nextRound();
+                }, 1500); // Short delay for user to read success message
+            } else {
+                // --- Incorrect guess (not repeated, not valid for letter) ---
+                showMessage(`Sorry! "${guess}" doesn't start with ${currentGame.letter} or isn't a valid Pokémon.`, 'error');
+                document.getElementById('pokemonInput').value = ''; // Clear input
+                // The timer continues running for incorrect guesses. No game over here.
+                setTimeout(() => {
+                    document.getElementById('pokemonInput').focus(); // Refocus input
+                    document.getElementById('message').textContent = ''; // Clear message
+                    document.getElementById('message').className = 'message'; // Reset message class
+                }, 1500); // Short delay to read message
+            }
+        }
+
+        /**
+         * Handles skipping a round. Displays examples and ends the game.
+         */
+        function skipRound() {
+            // Stop the timer
+            if (currentGame.timer) {
+                clearInterval(currentGame.timer);
+                currentGame.timer = null;
+            }
+            disableGameInput(true); // Disable input and buttons on skip, as game will end
+            // Show some examples for the current letter (first 3)
+            const examples = pokemonByLetter[currentGame.letter].slice(0, 3).join(', ');
+            showMessage(`Skipped! Examples for ${currentGame.letter}: ${examples}`, 'error');
+            // End the game after a short delay
+            setTimeout(() => {
+                gameOver();
+            }, 3000);
+        }
+
+        /**
+         * Handles the case when the timer runs out. Displays examples and ends the game.
+         */
+        function timeUp() {
+            // Stop the timer
+            if (currentGame.timer) {
+                clearInterval(currentGame.timer);
+                currentGame.timer = null;
+            }
+            disableGameInput(true); // Disable input and buttons on time up, as game will end
+            // Show some examples for the current letter (first 3)
+            const examples = pokemonByLetter[currentGame.letter].slice(0, 3).join(', ');
+            showMessage(`Time's up! Examples for ${currentGame.letter}: ${examples}`, 'error');
+            // End the game after a short delay
+            setTimeout(() => {
+                gameOver();
+            }, 3000);
+        }
+
+        /**
+         * Displays a message to the user in the dedicated message area.
+         * Applies a specific styling class based on the message type.
+         * @param {string} text - The message string to display.
+         * @param {string} type - The type of message ('success' or 'error') for styling.
+         */
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`; // Apply the appropriate styling class
+        }
+
+        /**
+         * Advances to the next round by incrementing the round count and starting a new round.
+         */
+        function nextRound() {
+            currentGame.round++;
+            startNewRound();
+        }
+
+        /**
+         * Ends the game, hides the game screen, and displays the game over screen.
+         * Shows the final score and rounds played.
+         */
+        function gameOver() {
+            currentGame.isActive = false; // Deactivate game state
+            clearInterval(currentGame.timer); // Ensure timer is stopped
+
+            showScreen('gameOver'); // Show the game over screen
+
+            // Update final score and rounds played on the game over screen
+            document.getElementById('finalScore').textContent = currentGame.correct;
+            document.getElementById('finalRounds').textContent = currentGame.round;
+        }
+
+        /**
+         * Restarts the game from the beginning by calling startGame().
+         */
+        function restartGame() {
+            // Goes to instructions first for a fresh start, matching "Play Now" flow
+            showInstructions();
+        }
+
+        /**
+         * Shows the main menu screen.
+         */
+        function showMainMenu() {
+            showScreen('mainMenu');
+        }
+
+        /**
+         * Shows the instructions screen.
+         */
+        function showInstructions() {
+            showScreen('instructionsScreen');
+        }
+
+        /**
+         * Populates the 'All Playable Pokémon' list dynamically.
+         */
+        function populateAllPokemonList() {
+            const pokemonListEl = document.getElementById('allPokemonList');
+            pokemonListEl.innerHTML = ''; // Clear previous list
+
+            const sortedLetters = Object.keys(pokemonByLetter).sort();
+
+            sortedLetters.forEach(letter => {
+                const letterHeader = document.createElement('h3');
+                letterHeader.textContent = letter.toUpperCase();
+                pokemonListEl.appendChild(letterHeader);
+
+                const sortedPokemon = pokemonByLetter[letter].sort();
+                sortedPokemon.forEach(pokemon => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = pokemon;
+                    pokemonListEl.appendChild(listItem);
+                });
+            });
+        }
+
+        /**
+         * Shows the all Pokémon list screen.
+         */
+        function showAllPokemon() {
+            showScreen('pokemonListScreen');
+        }
+
+        // Event listener for Enter key press on the input field to submit guess
+        document.getElementById('pokemonInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !document.getElementById('pokemonInput').disabled) {
+                submitGuess();
+            }
+        });
+
+        // Initialize the game by showing the main menu when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            showMainMenu();
+        });
+    </script>
+</body>
+</html>

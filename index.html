@@ -277,6 +277,35 @@
         .pokemon-list h3:first-child {
             margin-top: 0;
         }
+
+        /* Countdown Overlay Styling */
+        #countdownOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 10rem;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.5);
+            z-index: 1000; /* Ensure it's on top */
+            opacity: 0; /* Start hidden and fade in/out */
+            transition: opacity 0.3s ease-in-out;
+            pointer-events: none; /* Allows clicks to pass through when hidden */
+        }
+        #countdownOverlay.active {
+            opacity: 1;
+            pointer-events: auto; /* Enable pointer events when active */
+        }
+        /* Responsive font size for countdown */
+        #countdownOverlay span {
+            font-size: clamp(5rem, 25vw, 10rem);
+        }
     </style>
 </head>
 <body>
@@ -351,6 +380,12 @@
         </div>
     </div>
 
+    <!-- Countdown Overlay -->
+    <div id="countdownOverlay" class="hidden">
+        <span id="countdownText"></span>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
     <script>
         // Comprehensive list of Pokémon organized by first letter
         // This list includes Pokémon from various generations (I-IX), regional forms,
@@ -526,7 +561,7 @@
                 'Nacli', 'Naclstack', 'Naganadel', 'Natu', 'Necrozma', 'Necrozma-Dawn Wings', 'Necrozma-Dusk Mane',
                 'Necrozma-Ultra', 'Nickit', 'Nidoking', 'Nidoqueen', 'Nidoran♀', 'Nidoran♂', 'Nidorina', 'Nidorino',
                 'Nihilego', 'Nincada', 'Ninetales', 'Ninetales-Alolan', 'Ninjask', 'Noctowl', 'Noibat', 'Noivern',
-                'Nosepass', 'Numel', 'Nymble', 'Nuzleaf', 'Nidorina', 'Nidorino'
+                'Nosepass', 'Numel', 'Nymble', 'Nuzleaf'
             ],
             'O': [
                 'Obstagoon', 'Octillery', 'Oddish', 'Ogerpon', 'Oinkologne', 'Okidogi', 'Omanyte', 'Omastar', 'Onix',
@@ -630,6 +665,119 @@
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition;
         let isListening = false;
+
+        // Tone.js Synths for sound effects
+        let correctSynth;
+        let wrongSynth;
+        let clickSynth;
+        let warningSynth; // New synth for warning beeps
+
+        // Debounce flag for click sound
+        let isClickSoundDebounced = false;
+
+        /**
+         * Initializes Tone.js synths for sound effects.
+         * Call this function on a user interaction (e.g., first button click)
+         * to enable audio playback in browsers that require it.
+         */
+        function initializeAudio() {
+            // Check if Tone.js audio context is running, and start if not.
+            // This is crucial for some browsers to allow audio playback.
+            if (Tone.context.state !== 'running') {
+                Tone.start().then(() => {
+                    console.log('AudioContext started');
+                }).catch(e => console.error('Error starting AudioContext:', e));
+            }
+
+            if (!correctSynth) {
+                correctSynth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: "sine" },
+                    envelope: {
+                        attack: 0.005,
+                        decay: 0.1,
+                        sustain: 0.2,
+                        release: 0.5,
+                    },
+                    volume: -10 // Adjust volume if needed
+                }).toDestination();
+            }
+            if (!wrongSynth) {
+                wrongSynth = new Tone.NoiseSynth({
+                    noise: { type: "white" },
+                    envelope: {
+                        attack: 0.001,
+                        decay: 0.1,
+                        sustain: 0,
+                        release: 0.1
+                    },
+                    volume: -15 // Adjust volume if needed
+                }).toDestination();
+            }
+            if (!clickSynth) {
+                clickSynth = new Tone.MembraneSynth({
+                    pitchDecay: 0.05,
+                    octaves: 2,
+                    envelope: {
+                        attack: 0.001,
+                        decay: 0.4,
+                        sustain: 0.01,
+                        release: 0.2,
+                        attackCurve: "exponential"
+                    },
+                    volume: -20 // Adjust volume if needed
+                }).toDestination();
+            }
+            // Initialize warning synth
+            if (!warningSynth) {
+                warningSynth = new Tone.MembraneSynth({
+                    pitchDecay: 0.01,
+                    octaves: 1,
+                    envelope: {
+                        attack: 0.001,
+                        decay: 0.1,
+                        sustain: 0.01,
+                        release: 0.05
+                    },
+                    volume: -12
+                }).toDestination();
+            }
+        }
+
+        /**
+         * Plays a sound effect based on type.
+         * @param {string} type - 'correct', 'wrong', 'click', or 'warning'.
+         * @param {string} [note] - Optional, for 'warning' sounds (e.g., "C4", "C3").
+         */
+        function playSound(type, note = "C4") {
+            // Always initialize audio context on user interaction
+            initializeAudio(); 
+            
+            // Get current audio context time to schedule events precisely
+            const now = Tone.context.currentTime;
+
+            switch (type) {
+                case 'correct':
+                    correctSynth.triggerAttackRelease("C5", "8n", now); // Schedules note at current time
+                    break;
+                case 'wrong':
+                    wrongSynth.triggerAttackRelease("8n", now); // Schedules noise at current time
+                    break;
+                case 'click':
+                    // Debounce click sound to prevent rapid re-triggering errors
+                    if (!isClickSoundDebounced) {
+                        isClickSoundDebounced = true;
+                        clickSynth.triggerAttackRelease("C3", "16n", now); // Schedules note at current time
+                        // Reset debounce flag after a short delay
+                        setTimeout(() => {
+                            isClickSoundDebounced = false;
+                        }, 10); // Reduced debounce period to 10ms
+                    }
+                    break;
+                case 'warning':
+                    warningSynth.triggerAttackRelease(note, "32n", now); // Play a short beep
+                    break;
+            }
+        }
 
         // Initialize speech recognition if supported
         if (SpeechRecognition) {
@@ -743,6 +891,7 @@
          * Toggles speech recognition on and off.
          */
         function toggleSpeechRecognition() {
+            // playSound('click'); // Click sound will be handled by delegated listener
             if (!recognition) {
                 showMessage('Speech recognition not supported in this browser.', 'error');
                 return;
@@ -768,6 +917,7 @@
          * Initializes game state and starts a new round.
          */
         function startGame() {
+            // playSound('click'); // Click sound will be handled by delegated listener
             // Reset game state for a new game
             currentGame = {
                 letter: '',
@@ -846,10 +996,20 @@
         /**
          * Updates the timer display element.
          * Applies a 'warning' class if time is low (3 seconds or less) for visual cue.
+         * Also triggers a warning sound at 3, 2, and 1 seconds.
          */
         function updateTimer() {
             const timerEl = document.getElementById('timer');
             timerEl.textContent = currentGame.timeLeft; // Update displayed time
+
+            // Play warning sound at 3, 2, 1 seconds
+            if (currentGame.timeLeft === 3) {
+                playSound('warning', "E4"); // Higher pitch for 3
+            } else if (currentGame.timeLeft === 2) {
+                playSound('warning', "C4"); // Medium pitch for 2
+            } else if (currentGame.timeLeft === 1) {
+                playSound('warning', "G3"); // Lower pitch for 1
+            }
 
             // Toggle 'warning' class based on remaining time
             if (currentGame.timeLeft <= 3) {
@@ -872,6 +1032,7 @@
          * Prevents submission if input is empty or game is not active.
          */
         function submitGuess() {
+            // playSound('click'); // Click sound will be handled by delegated listener
             const input = document.getElementById('pokemonInput').value.trim();
             // Guard clause: do nothing if input is empty or game is not active
             if (!input || !currentGame.isActive) return;
@@ -896,6 +1057,7 @@
 
             // --- Check for repeated Pokémon (that were previously correct) ---
             if (currentGame.guessedPokemon.has(normalizedGuess)) {
+                playSound('wrong'); // Play wrong sound for duplicates
                 showMessage(`You already said "${guess}"! Try a new one.`, 'error');
                 document.getElementById('pokemonInput').value = ''; // Clear input
 
@@ -926,6 +1088,7 @@
             // For correct guesses, we stop the timer to start a new round.
             // For incorrect guesses, the timer continues.
             if (validPokemonForLetter.includes(normalizedGuess)) {
+                playSound('correct'); // Play correct sound
                 if (currentGame.timer) {
                     clearInterval(currentGame.timer); // Stop timer for next round
                     currentGame.timer = null;
@@ -939,6 +1102,7 @@
                 }, 1500); // Short delay for user to read success message
             } else {
                 // --- Incorrect guess (not repeated, not valid for letter) ---
+                playSound('wrong'); // Play wrong sound
                 showMessage(`Sorry! "${guess}" doesn't start with ${currentGame.letter} or isn't a valid Pokémon.`, 'error');
                 document.getElementById('pokemonInput').value = ''; // Clear input
                 // The timer continues running for incorrect guesses. No game over here.
@@ -951,9 +1115,21 @@
         }
 
         /**
+         * Helper function to get random elements from an array.
+         * @param {Array} arr - The array to pick from.
+         * @param {number} num - The number of random elements to get.
+         * @returns {Array} An array of random elements.
+         */
+        function getRandomElements(arr, num) {
+            const shuffled = [...arr].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, num);
+        }
+
+        /**
          * Handles skipping a round. Displays examples and ends the game.
          */
         function skipRound() {
+            playSound('wrong'); // Play wrong sound for skip
             // Stop the timer
             if (currentGame.timer) {
                 clearInterval(currentGame.timer);
@@ -965,8 +1141,8 @@
             }
 
             disableGameInput(true); // Disable input and buttons on skip, as game will end
-            // Show some examples for the current letter (first 3)
-            const examples = pokemonByLetter[currentGame.letter].slice(0, 3).join(', ');
+            // Show some random examples for the current letter (3 examples)
+            const examples = getRandomElements(pokemonByLetter[currentGame.letter], 3).join(', ');
             showMessage(`Skipped! Examples for ${currentGame.letter}: ${examples}`, 'error');
             // End the game after a short delay
             setTimeout(() => {
@@ -978,6 +1154,7 @@
          * Handles the case when the timer runs out. Displays examples and ends the game.
          */
         function timeUp() {
+            playSound('wrong'); // Play wrong sound for time up
             // Stop the timer
             if (currentGame.timer) {
                 clearInterval(currentGame.timer);
@@ -989,8 +1166,8 @@
             }
 
             disableGameInput(true); // Disable input and buttons on time up, as game will end
-            // Show some examples for the current letter (first 3)
-            const examples = pokemonByLetter[currentGame.letter].slice(0, 3).join(', ');
+            // Show some random examples for the current letter (3 examples)
+            const examples = getRandomElements(pokemonByLetter[currentGame.letter], 3).join(', ');
             showMessage(`Time's up! Examples for ${currentGame.letter}: ${examples}`, 'error');
             // End the game after a short delay
             setTimeout(() => {
@@ -1040,6 +1217,7 @@
          * Restarts the game from the beginning by calling startGame().
          */
         function restartGame() {
+            // playSound('click'); // Click sound will be handled by delegated listener
             // Goes to instructions first for a fresh start, matching "Play Now" flow
             showInstructions();
         }
@@ -1048,6 +1226,7 @@
          * Shows the main menu screen.
          */
         function showMainMenu() {
+            // playSound('click'); // Click sound will be handled by delegated listener
             showScreen('mainMenu');
         }
 
@@ -1055,6 +1234,7 @@
          * Shows the instructions screen.
          */
         function showInstructions() {
+            // playSound('click'); // Click sound will be handled by delegated listener
             showScreen('instructionsScreen');
         }
 
@@ -1085,6 +1265,7 @@
          * Shows the all Pokémon list screen.
          */
         function showAllPokemon() {
+            // playSound('click'); // Click sound will be handled by delegated listener
             showScreen('pokemonListScreen');
         }
 
@@ -1094,6 +1275,19 @@
                 submitGuess();
             }
         });
+
+        // Add a delegated event listener to the game container for all button clicks
+        document.querySelector('.game-container').addEventListener('click', function(event) {
+            // Check if the clicked element or its parent is a button
+            if (event.target.classList.contains('btn') || event.target.closest('.btn')) {
+                // Play click sound if it's a button, and it's not the microphone button
+                // (microphone button sound is handled by toggleSpeechRecognition)
+                if (event.target.id !== 'micBtn') {
+                    playSound('click');
+                }
+            }
+        });
+
 
         // Initialize the game by showing the main menu when the DOM is fully loaded
         document.addEventListener('DOMContentLoaded', function() {
